@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 
 exports.handler = async (event) => {
     try {
-        const { fileNameCsv, csvContent, recipient, adresseValue, formattedDate } = JSON.parse(event.body);
+        const { fileNameCsv, csvContent, recipient, adresseValueLower, formattedDate } = JSON.parse(event.body);
 
         let transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
@@ -17,8 +17,8 @@ exports.handler = async (event) => {
         let mailOptions = {
             from: `RELEVE SOPODEX <marina.nahdi@gmail.com>`, // Use a verified email
             to: recipient,
-            subject: `NOUVEAU RELEVÉ : ${adresseValue.toUpperCase()}`, // ✅ Updated subject with uppercase address
-            text: `Relevé chaufferie\n${adresseValue}\nEffectué le ${formattedDate}`, // ✅ Updated text with line breaks
+            subject: `NOUVEAU RELEVÉ : ${adresseValueLower.toUpperCase()}`, // ✅ Updated subject with uppercase address
+            text: `Relevé chaufferie\n${adresseValueLower}\nEffectué le ${formattedDate}`, // ✅ Updated text with line breaks
                 attachments: [{
                 filename: fileNameCsv,
                 content: csvContent
