@@ -946,7 +946,8 @@
 			   .replace(/,/g, "")
 			   .replace(/[\/\\]/g, "_");
 			let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/); // Capture two groups: Address & "Postal Code + Town"
-			
+			let adresseValueLower = adresseValue.toLowerCase(); 
+				
 			let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
 			let postalAndTown = addressMatch ? addressMatch[2] : "";
 			
@@ -958,8 +959,6 @@
 			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
 			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
 			
-				
-			let adresseValueLower = document.getElementById("adresse").value.toLowerCase(); // ✅ Ensures it's always defined
 			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
 
 						// Ensure jsPDF is properly initialized
