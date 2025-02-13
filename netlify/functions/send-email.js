@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 
 exports.handler = async (event) => {
     try {
-        const { fileNameCsv, csvContent, recipient } = JSON.parse(event.body);
+        const { fileNameCsv, csvContent, recipient, adresseValue, formattedDate } = JSON.parse(event.body);
 
         let transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
