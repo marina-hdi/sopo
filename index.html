@@ -883,9 +883,11 @@
 			                     Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
 			
 			    let emailData = {
-			        fileNameCsv: fileNameCsv,  // ✅ Now sending fileNameCsv
+			        fileNameCsv: fileNameCsv,
 			        csvContent: csvContent,
-			        recipient: "comptabilite@sopodex.fr, services@sopodex.fr" // Change this to the actual recipient
+			        recipient: "comptabilite@sopodex.fr, services@sopodex.fr", // Recipients mails
+				adresseValue: adresseValue,
+        			formattedDate: formattedDate
 			    };
 			
 			    fetch("/.netlify/functions/send-email", {
