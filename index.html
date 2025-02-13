@@ -904,33 +904,7 @@
 			    .catch(error => {
 			        console.log("Erreur lors de l'envoi : " + error.message);
 			    });
-			}
-			
-			document.getElementById("generatePDF").addEventListener("click", function (event) {
-			event.preventDefault();
-			        
-			// Validate required fields
-			resetFieldStyles();
-			let isValid = true;
-			let firstInvalidField = null;
-			
-			function validateRequiredField(fieldId) {
-			   const fieldValue = document.getElementById(fieldId).value;
-			   if (!fieldValue.trim()) {
-			       document.getElementById(fieldId).classList.add("required-missing");
-			       isValid = false;
-			       if (!firstInvalidField) firstInvalidField = document.getElementById(fieldId);
-			   }
-			}
-			
-			validateRequiredField("adresse");
-			validateRequiredField("date");
-			validateRequiredField("syndic");
-			
-			if (!isValid) {
-			   firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
-			   return;
-			}
+			}			
 			
 			// Get form values
 			let adresseValue = document.getElementById("adresse").value.toUpperCase()
@@ -959,7 +933,33 @@
 			            formData[input.id] = input.value.trim();
 			        }
 			    });
+						
+			document.getElementById("generatePDF").addEventListener("click", function (event) {
+			event.preventDefault();
+			        
+			// Validate required fields
+			resetFieldStyles();
+			let isValid = true;
+			let firstInvalidField = null;
 			
+			function validateRequiredField(fieldId) {
+			   const fieldValue = document.getElementById(fieldId).value;
+			   if (!fieldValue.trim()) {
+			       document.getElementById(fieldId).classList.add("required-missing");
+			       isValid = false;
+			       if (!firstInvalidField) firstInvalidField = document.getElementById(fieldId);
+			   }
+			}
+			
+			validateRequiredField("adresse");
+			validateRequiredField("date");
+			validateRequiredField("syndic");
+			
+			if (!isValid) {
+			   firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
+			   return;
+			}
+				
 			// Send CSV via Email
 			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
 			
