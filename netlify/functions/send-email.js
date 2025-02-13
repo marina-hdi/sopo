@@ -17,9 +17,9 @@ exports.handler = async (event) => {
         let mailOptions = {
             from: `RELEVE SOPODEX <marina.nahdi@gmail.com>`, // Use a verified email
             to: recipient,
-            subject: `NOUVEAU RELEVE: ${fileNameCsv}`,
-            text: "Relevé chaufferie",
-            attachments: [{
+            subject: `NOUVEAU RELEVÉ : ${adresseValue.toUpperCase()}`, // ✅ Updated subject with uppercase address
+            text: `Relevé chaufferie\n${adresseValue}\nEffectué le ${formattedDate}`, // ✅ Updated text with line breaks
+                attachments: [{
                 filename: fileNameCsv,
                 content: csvContent
             }]
