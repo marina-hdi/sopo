@@ -3,28 +3,21 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
 		<link rel="manifest" href="/manifest.json">
-		
 		<link rel="icon" href="icones/favicon.ico" type="image/x-icon">
-  		<link rel="shortcut icon" href="icones/favicon.ico" type="image/x-icon">
-
-  		<!-- For Android -->
-  		<link rel="icon" type="image/png" sizes="192x192" href="icones/icon-192x192.png">
-  		<link rel="icon" type="image/png" sizes="512x512" href="icones/icon-512x512.png">
-  
-  		<!-- For iPad/iPhone -->
-  		<link rel="apple-touch-icon" sizes="180x180" href="icones/apple-touch-icon.png">
-  
-  		<!-- Additional Meta for Web App Appearance -->
-  		<meta name="apple-mobile-web-app-capable" content="yes">
-  		<meta name="apple-mobile-web-app-status-bar-style" content="black">
-  		<meta name="apple-mobile-web-app-title" content="SOPODEX - RELEVE CHAUFFERIE">
-  
-  		<!-- For Android Chrome (optional but improves appearance) -->
-  		<meta name="mobile-web-app-capable" content="yes">
-  		<meta name="theme-color" content="#ffffff">
-
+		<link rel="shortcut icon" href="icones/favicon.ico" type="image/x-icon">
+		<!-- For Android -->
+		<link rel="icon" type="image/png" sizes="192x192" href="icones/icon-192x192.png">
+		<link rel="icon" type="image/png" sizes="512x512" href="icones/icon-512x512.png">
+		<!-- For iPad/iPhone -->
+		<link rel="apple-touch-icon" sizes="180x180" href="icones/apple-touch-icon.png">
+		<!-- Additional Meta for Web App Appearance -->
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<meta name="apple-mobile-web-app-title" content="SOPODEX - RELEVE CHAUFFERIE">
+		<!-- For Android Chrome (optional but improves appearance) -->
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="theme-color" content="#ffffff">
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..900&display=swap" rel="stylesheet" />
@@ -884,538 +877,582 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 		<script>
+			// Function to send CSV via email
+			function sendCSVByEmail(formData, fileNameCsv) {
+			    let csvContent = Object.keys(formData).join(",") + "\n" + 
+			                     Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
+			
+			    // Prepare email payload for Netlify Function
+			    let emailData = {
+			        fileName: fileNameCsv,
+			        csvContent: csvContent,
+			        recipient: "comptabilite@sopodex.fr" // Change to actual recipient
+			    };
+			
+			    // Send CSV via email using Netlify function
+			    fetch("/.netlify/functions/send-email", {
+			        method: "POST",
+			        headers: {
+			            "Content-Type": "application/json"
+			        },
+			        body: JSON.stringify(emailData)
+			    })
+			    .then(response => response.json())
+			    .then(data => {
+			        console.log("CSV envoyé!");
+			    })
+			    .catch(error => {
+			        console.error("Erreur lors de l'envoi:", error);
+			    });
+			}
+			
 			document.getElementById("generatePDF").addEventListener("click", function (event) {
-			    event.preventDefault();
+			event.preventDefault();
+			        
+			// Validate required fields
+			resetFieldStyles();
+			let isValid = true;
+			let firstInvalidField = null;
 			
-			    // Ensure jsPDF is properly initialized
-			    const { jsPDF } = window.jspdf;
-			    const doc = new jsPDF();
+			function validateRequiredField(fieldId) {
+			   const fieldValue = document.getElementById(fieldId).value;
+			   if (!fieldValue.trim()) {
+			       document.getElementById(fieldId).classList.add("required-missing");
+			       isValid = false;
+			       if (!firstInvalidField) firstInvalidField = document.getElementById(fieldId);
+			   }
+			}
 			
-			    // Check if autoTable is available
-			    if (!doc.autoTable) {
-			        alert("Error: autoTable is not available. Ensure the jsPDF AutoTable plugin is loaded.");
-			        return;
-			    }
+			validateRequiredField("adresse");
+			validateRequiredField("date");
+			validateRequiredField("syndic");
 			
-			    // Get form values
-			    let adresseValue = document.getElementById("adresse").value.toUpperCase()
-			        .replace(/,/g, "")
-			        .replace(/[\/\\]/g, "_");
-			    let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/); // Capture two groups: Address & "Postal Code + Town"
+			if (!isValid) {
+			   firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
+			   return;
+			}
 			
-			    let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
-			    let postalAndTown = addressMatch ? addressMatch[2] : "";
+			// Get form values
+			let adresseValue = document.getElementById("adresse").value.toUpperCase()
+			   .replace(/,/g, "")
+			   .replace(/[\/\\]/g, "_");
+			let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/); // Capture two groups: Address & "Postal Code + Town"
+			let adresseValueLower = adresseValue.toLowerCase();
 			
-			    let today = new Date();
-			    let formattedDate = today.getDate().toString().padStart(2, "0") +
-			        (today.getMonth() + 1).toString().padStart(2, "0") +
-			        today.getFullYear().toString().slice(-2);
+			let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
+			let postalAndTown = addressMatch ? addressMatch[2] : "";
 			
-			    let fileName = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
-			    
-			    let dateValue = document.getElementById("date").value;
-			    let formattedUserDate = dateValue ? dateValue.split("-").reverse().join("/") : "N/A";
-			             
-			    let dateDesembouageValue = document.getElementById("date-desembouage").value;
-			    let formattedDesembouageDate = dateDesembouageValue ? dateDesembouageValue.split("-").reverse().join("/") : "N/A";
-			             
-			    let dateDetartrageValue = document.getElementById("date-detartrage").value;
-			    let formattedDetartrageDate = dateDetartrageValue ? dateDetartrageValue.split("-").reverse().join("/") : "N/A";
-			             
-			    let dateFumigeneValue = document.getElementById("date-fumigene").value;
-			    let formattedFumigeneDate = dateFumigeneValue ? dateFumigeneValue.split("-").reverse().join("/") : "N/A";
-			             
-			    // Validate required fields
-			    resetFieldStyles();
-			    let isValid = true;
-			    let firstInvalidField = null;
+			let today = new Date();
+			let formattedDate = today.getDate().toString().padStart(2, "0") +
+			   (today.getMonth() + 1).toString().padStart(2, "0") +
+			   today.getFullYear().toString().slice(-2);
 			
-			    function validateRequiredField(fieldId) {
-			        const fieldValue = document.getElementById(fieldId).value;
-			        if (!fieldValue.trim()) {
-			            document.getElementById(fieldId).classList.add("required-missing");
-			            isValid = false;
-			            if (!firstInvalidField) firstInvalidField = document.getElementById(fieldId);
+			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
+			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
+			
+			    // Collect form data
+			    let formData = {};
+			    document.querySelectorAll("input, select, textarea").forEach(input => {
+			        if (input.type === "checkbox") {
+			            formData[input.id] = input.checked ? "OUI" : "NON";
+			        } else {
+			            formData[input.id] = input.value.trim();
 			        }
-			    }
+			    });
 			
-			    validateRequiredField("adresse");
-			    validateRequiredField("date");
-			    validateRequiredField("syndic");
+			// Send CSV via Email
+			sendCSVByEmail(formData, fileNameCsv);
 			
-			    if (!isValid) {
-			        firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
-			        return;
-			    }
+			// Ensure jsPDF is properly initialized
+			const { jsPDF } = window.jspdf;
+			const doc = new jsPDF();
 			
-			    // ** Generate PDF Content **
+			// Check if autoTable is available
+			if (!doc.autoTable) {
+			   alert("Error: autoTable is not available. Ensure the jsPDF AutoTable plugin is loaded.");
+			   return;
+			}
+			
+			let dateValue = document.getElementById("date").value;
+			let formattedUserDate = dateValue ? dateValue.split("-").reverse().join("/") : "N/A";
+			        
+			let dateDesembouageValue = document.getElementById("date-desembouage").value;
+			let formattedDesembouageDate = dateDesembouageValue ? dateDesembouageValue.split("-").reverse().join("/") : "N/A";
+			        
+			let dateDetartrageValue = document.getElementById("date-detartrage").value;
+			let formattedDetartrageDate = dateDetartrageValue ? dateDetartrageValue.split("-").reverse().join("/") : "N/A";
+			        
+			let dateFumigeneValue = document.getElementById("date-fumigene").value;
+			let formattedFumigeneDate = dateFumigeneValue ? dateFumigeneValue.split("-").reverse().join("/") : "N/A";
+			
+			// ** Generate PDF Content **
 			
 			let yPosition = 17
-			    doc.setDrawColor("#383634");
-			    doc.setLineWidth(2.5);
-			    doc.line(20, yPosition, 190, yPosition);
-			    
+			doc.setDrawColor("#383634");
+			doc.setLineWidth(2.5);
+			doc.line(20, yPosition, 190, yPosition);
+			
 			yPosition +=12
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(28);
-			    doc.setTextColor("#383634");
-			    doc.text("RELEVÉ CHAUFFERIE", 20, yPosition);
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(28);
+			doc.setTextColor("#383634");
+			doc.text("RELEVÉ CHAUFFERIE", 20, yPosition);
 			
 			yPosition +=18
-			    doc.setFontSize(18);
-			    doc.setTextColor("#053c69");
-			    doc.text(adresseWithoutPostal, 20, yPosition);
+			doc.setFontSize(18);
+			doc.setTextColor("#053c69");
+			doc.text(adresseWithoutPostal, 20, yPosition);
 			yPosition +=9
-			    if (postalAndTown) {
-			 	doc.text(postalAndTown, 20, yPosition);
-			    }
-			    
+			if (postalAndTown) {
+			doc.text(postalAndTown, 20, yPosition);
+			}
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bolditalic"); 
-			    doc.setFontSize(14);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("syndic").value, 20, yPosition);
-			    
+			doc.setFont("helvetica", "bolditalic"); 
+			doc.setFontSize(14);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("syndic").value, 20, yPosition);
+			
 			yPosition +=12
-			    doc.setFont("helvetica", "italic");  
-			    doc.setFontSize(10); 
-			    doc.setTextColor("#5c5a58");
-			    doc.text("Relevé fait le " + formattedUserDate, 20, yPosition);
-			    
+			doc.setFont("helvetica", "italic");  
+			doc.setFontSize(10); 
+			doc.setTextColor("#5c5a58");
+			doc.text("Relevé fait le " + formattedUserDate, 20, yPosition);
+			
 			yPosition +=12
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
-			    
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("ACCES & CONTACTS", 20, yPosition);
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("ACCES & CONTACTS", 20, yPosition);
+			
 			yPosition +=12
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("CODE : ", 20, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("code").value, 36, yPosition); 
-				
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("ACCES : ", 85, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("acces").value, 104, yPosition); 
-				
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("CODE : ", 20, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("code").value, 36, yPosition); 
+			
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("ACCES : ", 85, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("acces").value, 104, yPosition); 
+			
 			yPosition +=12
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("CONTACT PCS/CS : ", 20, yPosition);
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("CONTACT PCS/CS : ", 20, yPosition);
+			
 			yPosition +=6
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("pcs").value, 20, yPosition);
-				
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("pcs").value, 20, yPosition);
+			
 			yPosition +=15
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("AUTRES (infos utiles, contact gardien,...) : ", 20, yPosition);
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("AUTRES (infos utiles, contact gardien,...) : ", 20, yPosition);
+			
 			yPosition +=6
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("autres").value, 20, yPosition);
-				
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("autres").value, 20, yPosition);
+			
 			yPosition +=15
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("LOCALISATION CHAUFFERIE : ", 20, yPosition);
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("LOCALISATION CHAUFFERIE : ", 20, yPosition);
 			
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("location").value, 84, yPosition);
-			    
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("location").value, 84, yPosition);
+			
 			yPosition +=12
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
-			    
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("PRODUCTION DE CHALEUR", 20, yPosition);
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("PRODUCTION DE CHALEUR", 20, yPosition);
+			
 			yPosition +=12
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("CHAUDIERES : ", 20, yPosition);
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("CHAUDIERES : ", 20, yPosition);
 			
 			yPosition +=6
 			
-			    // ** Add Table : Chaudières **
-			    doc.autoTable({
-			             startY: yPosition,
-			             margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-			             tableWidth: 170,
-			             head: [["MARQUE", "TYPE", "kW", "ANNEE", "N° SERIE"]],
-			             body: [
-			                 [
-			                     document.getElementById("marque-ch1").value,
-			                     document.getElementById("type-ch1").value,
-			                     document.getElementById("kw-ch1").value,
-			                     document.getElementById("annee-ch1").value,
-			                     document.getElementById("serial-ch1").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-ch2").value,
-			                     document.getElementById("type-ch2").value,
-			                     document.getElementById("kw-ch2").value,
-			                     document.getElementById("annee-ch2").value,
-			                     document.getElementById("serial-ch2").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-ch3").value,
-			                     document.getElementById("type-ch3").value,
-			                     document.getElementById("kw-ch3").value,
-			                     document.getElementById("annee-ch3").value,
-			                     document.getElementById("serial-ch3").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-ch4").value,
-			                     document.getElementById("type-ch4").value,
-			                     document.getElementById("kw-ch4").value,
-			                     document.getElementById("annee-ch4").value,
-			                     document.getElementById("serial-ch4").value,
-			                 ],
-			             ],
-			             theme: "grid",
-			             styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
-			             headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
-			         });
-			
-			    yPosition = doc.lastAutoTable.finalY + 6;
-			             
-			             // ** Add Table : Dates **
-			    doc.autoTable({
+			// ** Add Table : Chaudières **
+			doc.autoTable({
 			        startY: yPosition,
-				margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-				tableWidth: 170,
-			        head: [["DATE DERNIER DESEMBOUAGE", "DATE DERNIER DETARTRAGE", "DATE DERNIER ESSAI FUMIGENE"]],
+			        margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			        tableWidth: 170,
+			        head: [["MARQUE", "TYPE", "kW", "ANNEE", "N° SERIE"]],
 			        body: [
 			            [
-			                formattedDesembouageDate,
-			                formattedDetartrageDate,
-			                formattedFumigeneDate,
+			                document.getElementById("marque-ch1").value,
+			                document.getElementById("type-ch1").value,
+			                document.getElementById("kw-ch1").value,
+			                document.getElementById("annee-ch1").value,
+			                document.getElementById("serial-ch1").value,
+			            ],
+			            [
+			                document.getElementById("marque-ch2").value,
+			                document.getElementById("type-ch2").value,
+			                document.getElementById("kw-ch2").value,
+			                document.getElementById("annee-ch2").value,
+			                document.getElementById("serial-ch2").value,
+			            ],
+			            [
+			                document.getElementById("marque-ch3").value,
+			                document.getElementById("type-ch3").value,
+			                document.getElementById("kw-ch3").value,
+			                document.getElementById("annee-ch3").value,
+			                document.getElementById("serial-ch3").value,
+			            ],
+			            [
+			                document.getElementById("marque-ch4").value,
+			                document.getElementById("type-ch4").value,
+			                document.getElementById("kw-ch4").value,
+			                document.getElementById("annee-ch4").value,
+			                document.getElementById("serial-ch4").value,
 			            ],
 			        ],
 			        theme: "grid",
-			        styles: { fontSize: 10, font: "helvetica"  },
-			        headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" }
-			             });
-			             
-			             
-			    // Add New Page
-			    doc.addPage()
+			        styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
+			        headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
+			    });
 			
-			 			yPosition =17
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
-			    
+			yPosition = doc.lastAutoTable.finalY + 6;
+			        
+			        // ** Add Table : Dates **
+			doc.autoTable({
+			   startY: yPosition,
+			margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			tableWidth: 170,
+			   head: [["DATE DERNIER DESEMBOUAGE", "DATE DERNIER DETARTRAGE", "DATE DERNIER ESSAI FUMIGENE"]],
+			   body: [
+			       [
+			           formattedDesembouageDate,
+			           formattedDetartrageDate,
+			           formattedFumigeneDate,
+			       ],
+			   ],
+			   theme: "grid",
+			   styles: { fontSize: 10, font: "helvetica"  },
+			   headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" }
+			        });
+			        
+			        
+			// Add New Page
+			doc.addPage()
+			
+			yPosition =17
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("RESEAU CHAUFFAGE", 20, yPosition);
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("RESEAU CHAUFFAGE", 20, yPosition);
+			
 			yPosition +=12
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("POMPES :", 20, yPosition);            
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("POMPES :", 20, yPosition);            
 			
 			yPosition +=6
 			
-			    // ** Add Table : pompes **
-			    doc.autoTable({
-			             startY: yPosition,
-			             margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-			             tableWidth: 170,
-			             head: [["MARQUE", "TYPE", "Ø"]],
-			             body: [
-			                 [
-			                     document.getElementById("marque-pmp1").value,
-			                     document.getElementById("type-pmp1").value,
-			                     document.getElementById("diam-pmp1").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-pmp2").value,
-			                     document.getElementById("type-pmp2").value,
-			                     document.getElementById("diam-pmp2").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-pmp3").value,
-			                     document.getElementById("type-pmp3").value,
-			                     document.getElementById("diam-pmp3").value,
-			                 ],
-			             ],
-			             theme: "grid",
-			             styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
-			             headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
-			         });
+			// ** Add Table : pompes **
+			doc.autoTable({
+			        startY: yPosition,
+			        margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			        tableWidth: 170,
+			        head: [["MARQUE", "TYPE", "Ø"]],
+			        body: [
+			            [
+			                document.getElementById("marque-pmp1").value,
+			                document.getElementById("type-pmp1").value,
+			                document.getElementById("diam-pmp1").value,
+			            ],
+			            [
+			                document.getElementById("marque-pmp2").value,
+			                document.getElementById("type-pmp2").value,
+			                document.getElementById("diam-pmp2").value,
+			            ],
+			            [
+			                document.getElementById("marque-pmp3").value,
+			                document.getElementById("type-pmp3").value,
+			                document.getElementById("diam-pmp3").value,
+			            ],
+			        ],
+			        theme: "grid",
+			        styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
+			        headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
+			    });
 			
-			    yPosition = doc.lastAutoTable.finalY + 9;
-			             
-			    doc.setFont("helvetica", "bold"); 				
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("V3V :", 20, yPosition);
-				
-			    yPosition +=6
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("v3v").value, 20, yPosition);
-							       
+			yPosition = doc.lastAutoTable.finalY + 9;
+			        
+			doc.setFont("helvetica", "bold"); 				
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("V3V :", 20, yPosition);
+			
+			yPosition +=6
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("v3v").value, 20, yPosition);
+			      
 			yPosition +=12      
-			    doc.setFont("helvetica", "bold"); 	
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("REGULATEURS :", 20, yPosition);
-				
-			    yPosition +=6
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("regulateurs").value, 20, yPosition);
-				
-			    doc.setFont("helvetica", "bold");
-			    yPosition +=12
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("PENTE :", 20, yPosition);
-				
-			    yPosition +=6
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("pente").value, 20, yPosition);
-			    
-			    yPosition +=15
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
+			doc.setFont("helvetica", "bold"); 	
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("REGULATEURS :", 20, yPosition);
 			
-			    yPosition +=9			    
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("PRODUCTION ECS", 20, yPosition);            
+			yPosition +=6
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("regulateurs").value, 20, yPosition);
 			
-			    yPosition += 6;
+			doc.setFont("helvetica", "bold");
+			yPosition +=12
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("PENTE :", 20, yPosition);
 			
-			    // ** Add Table : prod ecs**
-			    doc.autoTable({
-			             startY: yPosition,
-			             margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-			             tableWidth: 170,
-			             head: [["MARQUE", "TYPE", "Ø ECS", "Ø RECYCL. ECS"]],
-			             body: [
-			                 [
-			                     document.getElementById("marque-ecs1").value,
-			                     document.getElementById("type-ecs1").value,
-			                     document.getElementById("diam-ecs1").value,
-			                     document.getElementById("diam-recyclage-ecs1").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-ecs2").value,
-			                     document.getElementById("type-ecs2").value,
-			                     document.getElementById("diam-ecs2").value,
-			                     document.getElementById("diam-recyclage-ecs2").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-ecs3").value,
-			                     document.getElementById("type-ecs3").value,
-			                     document.getElementById("diam-ecs3").value,
-			                     document.getElementById("diam-recyclage-ecs3").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-ecs4").value,
-			                     document.getElementById("type-ecs4").value,
-			                     document.getElementById("diam-ecs4").value,
-			                     document.getElementById("diam-recyclage-ecs4").value,
-			                 ],
-			             ],
-			             theme: "grid",
-			             styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
-			             headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
-			         });
+			yPosition +=6
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("pente").value, 20, yPosition);
 			
-			    yPosition = doc.lastAutoTable.finalY + 9;
-				
-			    doc.setFont("helvetica", "bold");
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("REMARQUES :", 20, yPosition);
-				
-			    yPosition +=6
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(document.getElementById("remarques-ecs").value, 20, yPosition);
-			    
-			    yPosition +=15
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
+			yPosition +=15
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
 			
-			    yPosition +=9			    
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("EXPANSION", 20, yPosition);            
+			yPosition +=9			    
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("PRODUCTION ECS", 20, yPosition);            
 			
-			    yPosition += 6;
+			yPosition += 6;
 			
-			    // ** Add Table : expansion**
-			    doc.autoTable({
-			             startY: yPosition,
-			             margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-			             tableWidth: 170,
-			             head: [["MARQUE", "TYPE", "REMARQUES"]],
-			             body: [
-			                 [
-			                     document.getElementById("marque-expansion1").value,
-			                     document.getElementById("type-expansion1").value,
-			                     document.getElementById("remarques-expansion1").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-expansion2").value,
-			                     document.getElementById("type-expansion2").value,
-			                     document.getElementById("remarques-expansion2").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-expansion3").value,
-			                     document.getElementById("type-expansion3").value,
-			                     document.getElementById("remarques-expansion3").value,
-			                 ],
-			                 [
-			                     document.getElementById("marque-expansion4").value,
-			                     document.getElementById("type-expansion4").value,
-			                     document.getElementById("remarques-expansion4").value,
-			                 ],
-			             ],
-			             theme: "grid",
-			             styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
-			             headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
-			         });     
+			// ** Add Table : prod ecs**
+			doc.autoTable({
+			        startY: yPosition,
+			        margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			        tableWidth: 170,
+			        head: [["MARQUE", "TYPE", "Ø ECS", "Ø RECYCL. ECS"]],
+			        body: [
+			            [
+			                document.getElementById("marque-ecs1").value,
+			                document.getElementById("type-ecs1").value,
+			                document.getElementById("diam-ecs1").value,
+			                document.getElementById("diam-recyclage-ecs1").value,
+			            ],
+			            [
+			                document.getElementById("marque-ecs2").value,
+			                document.getElementById("type-ecs2").value,
+			                document.getElementById("diam-ecs2").value,
+			                document.getElementById("diam-recyclage-ecs2").value,
+			            ],
+			            [
+			                document.getElementById("marque-ecs3").value,
+			                document.getElementById("type-ecs3").value,
+			                document.getElementById("diam-ecs3").value,
+			                document.getElementById("diam-recyclage-ecs3").value,
+			            ],
+			            [
+			                document.getElementById("marque-ecs4").value,
+			                document.getElementById("type-ecs4").value,
+			                document.getElementById("diam-ecs4").value,
+			                document.getElementById("diam-recyclage-ecs4").value,
+			            ],
+			        ],
+			        theme: "grid",
+			        styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
+			        headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
+			    });
 			
-			 
-			    // Add New Page
-			    doc.addPage()
+			yPosition = doc.lastAutoTable.finalY + 9;
 			
-			 yPosition =17
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
-			    
+			doc.setFont("helvetica", "bold");
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("REMARQUES :", 20, yPosition);
+			
+			yPosition +=6
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(document.getElementById("remarques-ecs").value, 20, yPosition);
+			
+			yPosition +=15
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
+			
+			yPosition +=9			    
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("EXPANSION", 20, yPosition);            
+			
+			yPosition += 6;
+			
+			// ** Add Table : expansion**
+			doc.autoTable({
+			        startY: yPosition,
+			        margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			        tableWidth: 170,
+			        head: [["MARQUE", "TYPE", "REMARQUES"]],
+			        body: [
+			            [
+			                document.getElementById("marque-expansion1").value,
+			                document.getElementById("type-expansion1").value,
+			                document.getElementById("remarques-expansion1").value,
+			            ],
+			            [
+			                document.getElementById("marque-expansion2").value,
+			                document.getElementById("type-expansion2").value,
+			                document.getElementById("remarques-expansion2").value,
+			            ],
+			            [
+			                document.getElementById("marque-expansion3").value,
+			                document.getElementById("type-expansion3").value,
+			                document.getElementById("remarques-expansion3").value,
+			            ],
+			            [
+			                document.getElementById("marque-expansion4").value,
+			                document.getElementById("type-expansion4").value,
+			                document.getElementById("remarques-expansion4").value,
+			            ],
+			        ],
+			        theme: "grid",
+			        styles: { fontSize: 10, font: "helvetica" },  // Apply Helvetica to body
+			        headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" } // Apply Helvetica to header
+			    });     
+			
+			
+			// Add New Page
+			doc.addPage()
+			
+			yPosition =17
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("CONFORMITÉ", 20, yPosition);
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("CONFORMITÉ", 20, yPosition);
 			
 			yPosition += 6;
 			
 			// Conformité Table
 			doc.autoTable({
-			 startY: yPosition,
-			 margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-			 tableWidth: 170,
-			 head: [["MATERIEL", "PRESENCE", "FONCTIONNEMENT", "REMARQUES"]],
-			 body: [
-			     ["VASE EXPANSION", 
-			      document.getElementById("psc-vase-expansion").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-vase-expansion").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-vase-expansion").value],
+			startY: yPosition,
+			margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			tableWidth: 170,
+			head: [["MATERIEL", "PRESENCE", "FONCTIONNEMENT", "REMARQUES"]],
+			body: [
+			["VASE EXPANSION", 
+			 document.getElementById("psc-vase-expansion").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-vase-expansion").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-vase-expansion").value],
 			
-			     ["PORTE COUPE FEU", 
-			      document.getElementById("psc-porte-coupe-feu").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-porte-coupe-feu").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-porte-coupe-feu").value],
+			["PORTE COUPE FEU", 
+			 document.getElementById("psc-porte-coupe-feu").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-porte-coupe-feu").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-porte-coupe-feu").value],
 			
-			     ["DISCONNECTEUR", 
-			      document.getElementById("psc-disconnecteur").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-disconnecteur").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-disconnecteur").value],
+			["DISCONNECTEUR", 
+			 document.getElementById("psc-disconnecteur").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-disconnecteur").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-disconnecteur").value],
 			
-			     ["LIGNE DE REMPLISSAGE", 
-			      document.getElementById("psc-ligne-de-remplissage").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-ligne-de-remplissage").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-ligne-de-remplissage").value],
+			["LIGNE DE REMPLISSAGE", 
+			 document.getElementById("psc-ligne-de-remplissage").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-ligne-de-remplissage").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-ligne-de-remplissage").value],
 			
-			     ["PRESSOSTAT / CONTROLEUR DEBIT", 
-			      document.getElementById("psc-pressostat-controleur-debit").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-pressostat-controleur-debit").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-pressostat-controleur-debit").value],
+			["PRESSOSTAT / CONTROLEUR DEBIT", 
+			 document.getElementById("psc-pressostat-controleur-debit").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-pressostat-controleur-debit").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-pressostat-controleur-debit").value],
 			
-			     ["COMBUSTION", 
-			      document.getElementById("psc-combustion").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-combustion").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-combustion").value],
+			["COMBUSTION", 
+			 document.getElementById("psc-combustion").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-combustion").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-combustion").value],
 			
-			     ["THERMOMETRE FUMEES", 
-			      document.getElementById("psc-thermometre-fumees").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-thermometre-fumees").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-thermometre-fumees").value],
+			["THERMOMETRE FUMEES", 
+			 document.getElementById("psc-thermometre-fumees").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-thermometre-fumees").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-thermometre-fumees").value],
 			
-			     ["POMPES", 
-			      document.getElementById("psc-pompes").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-pompes").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-pompes").value],
+			["POMPES", 
+			 document.getElementById("psc-pompes").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-pompes").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-pompes").value],
 			
-			     ["SIPHON / PUISARD", 
-			      document.getElementById("psc-siphon-puisard").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-siphon-puisard").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-siphon-puisard").value],
+			["SIPHON / PUISARD", 
+			 document.getElementById("psc-siphon-puisard").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-siphon-puisard").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-siphon-puisard").value],
 			
-			     ["FLOCAGE", 
-			      document.getElementById("psc-flocage").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-flocage").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-flocage").value],
+			["FLOCAGE", 
+			 document.getElementById("psc-flocage").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-flocage").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-flocage").value],
 			
-			     ["VANNE BASSE", 
-			      document.getElementById("psc-vb").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-vb").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-vb").value],
+			["VANNE BASSE", 
+			 document.getElementById("psc-vb").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-vb").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-vb").value],
 			
-			     ["VANNE HAUTE", 
-			      document.getElementById("psc-vh").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-vh").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-vh").value],
+			["VANNE HAUTE", 
+			 document.getElementById("psc-vh").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-vh").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-vh").value],
 			
-			     ["GP", 
-			      document.getElementById("psc-gp").checked ? "OUI" : "NON", 
-			      document.getElementById("fct-gp").checked ? "OUI" : "NON", 
-			      document.getElementById("rmq-gp").value]
-			 ],
-			 theme: "grid",
-			 styles: { fontSize: 10, font: "helvetica" },
-			 headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" }
+			["GP", 
+			 document.getElementById("psc-gp").checked ? "OUI" : "NON", 
+			 document.getElementById("fct-gp").checked ? "OUI" : "NON", 
+			 document.getElementById("rmq-gp").value]
+			],
+			theme: "grid",
+			styles: { fontSize: 10, font: "helvetica" },
+			headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" }
 			});
 			
 			// Update yPosition after the table
@@ -1423,94 +1460,94 @@
 			
 			// Suviv Table
 			doc.autoTable({
-			 startY: yPosition,
-			 margin: { left: (doc.internal.pageSize.width - 170) / 2 },
-			 tableWidth: 170,
-			 head: [["VISITES SOUS TRAITANCE", "SUIVI MIS EN PLACE", "SUIVI RESPECTÉ"]],
-			 body: [
-			     ["TRAITEMENT D'EAU", 
-			      document.getElementById("mep-suivi-tte").checked ? "OUI" : "NON", 
-			      document.getElementById("respect-suivi-tte").checked ? "OUI" : "NON"],
-			     ["RAMONAGE", 
-			      document.getElementById("mep-suivi-ramonage").checked ? "OUI" : "NON", 
-			      document.getElementById("respect-suivi-ramonage").checked ? "OUI" : "NON"],
-			     ["DETECTION GAZ", 
-			      document.getElementById("mep-suivi-gaz").checked ? "OUI" : "NON", 
-			      document.getElementById("respect-suivi-gaz").checked ? "OUI" : "NON"],
-			 ],
-			 theme: "grid",
-			 styles: { fontSize: 10, font: "helvetica" },
-			 headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" }
+			startY: yPosition,
+			margin: { left: (doc.internal.pageSize.width - 170) / 2 },
+			tableWidth: 170,
+			head: [["VISITES SOUS TRAITANCE", "SUIVI MIS EN PLACE", "SUIVI RESPECTÉ"]],
+			body: [
+			["TRAITEMENT D'EAU", 
+			 document.getElementById("mep-suivi-tte").checked ? "OUI" : "NON", 
+			 document.getElementById("respect-suivi-tte").checked ? "OUI" : "NON"],
+			["RAMONAGE", 
+			 document.getElementById("mep-suivi-ramonage").checked ? "OUI" : "NON", 
+			 document.getElementById("respect-suivi-ramonage").checked ? "OUI" : "NON"],
+			["DETECTION GAZ", 
+			 document.getElementById("mep-suivi-gaz").checked ? "OUI" : "NON", 
+			 document.getElementById("respect-suivi-gaz").checked ? "OUI" : "NON"],
+			],
+			theme: "grid",
+			styles: { fontSize: 10, font: "helvetica" },
+			headStyles: { fillColor: "#053c69", textColor: "#ffffff", font: "helvetica" }
 			});
 			
 			// Update yPosition after the table
 			yPosition = doc.lastAutoTable.finalY + 15;
 			
-			    doc.setDrawColor("#053c69");
-			    doc.setLineWidth(1.75);
-			    doc.line(20, yPosition, 190, yPosition);
-			    
-			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(16);
-			    doc.setTextColor("#053c69");
-			    doc.text("RELEVÉS COMPTEURS", 20, yPosition);
-				
-			yPosition +=12
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("EF CHAUFFAGE", 20, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(":      " + document.getElementById("releve-ef-chauffage").value, 65, yPosition); 
+			doc.setDrawColor("#053c69");
+			doc.setLineWidth(1.75);
+			doc.line(20, yPosition, 190, yPosition);
 			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("EF ECS", 20, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(":      " + document.getElementById("releve-ef-ecs").value, 65, yPosition); 
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(16);
+			doc.setTextColor("#053c69");
+			doc.text("RELEVÉS COMPTEURS", 20, yPosition);
+			
+			yPosition +=12
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("EF CHAUFFAGE", 20, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(":      " + document.getElementById("releve-ef-chauffage").value, 65, yPosition); 
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("GAZ", 20, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(":      " + document.getElementById("releve-gaz").value, 65, yPosition); 
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("EF ECS", 20, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(":      " + document.getElementById("releve-ef-ecs").value, 65, yPosition); 
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("FIOUL", 20, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(":      " + document.getElementById("releve-fioul").value, 65, yPosition); 
-				
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("GAZ", 20, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(":      " + document.getElementById("releve-gaz").value, 65, yPosition); 
+			
 			yPosition +=9
-			    doc.setFont("helvetica", "bold"); 
-			    doc.setFontSize(12);
-			    doc.setTextColor("#383634");
-			    doc.text("CPCU", 20, yPosition);
-				
-			    doc.setFont("helvetica", "normal"); 
-			    doc.setFontSize(10);
-			    doc.setTextColor("#5c5a58");
-			    doc.text(":      " + document.getElementById("releve-cpcu").value, 65, yPosition); 
-			    
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("FIOUL", 20, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(":      " + document.getElementById("releve-fioul").value, 65, yPosition); 
+			
+			yPosition +=9
+			doc.setFont("helvetica", "bold"); 
+			doc.setFontSize(12);
+			doc.setTextColor("#383634");
+			doc.text("CPCU", 20, yPosition);
+			
+			doc.setFont("helvetica", "normal"); 
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text(":      " + document.getElementById("releve-cpcu").value, 65, yPosition); 
+			
 			
 			// Add New Page
 			doc.addPage();
@@ -1545,71 +1582,74 @@
 			
 			yPosition += 6;
 			
-// Add Photos If Available
-const photos = document.getElementById("imageUpload").files;
-
-if (photos.length > 0) {
-    yPosition += 12;
-
-    const loadImage = (file) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const img = new Image();
-                img.onload = function () {
-                    resolve(img);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
-    const addImagesToPDF = async () => {
-        for (let i = 0; i < photos.length; i++) {
-            const img = await loadImage(photos[i]);
-
-            const maxWidth = 180;
-            const maxHeight = 150;
-            const aspectRatio = img.width / img.height;
-
-            let newWidth = maxWidth;
-            let newHeight = maxWidth / aspectRatio;
-
-            if (newHeight > maxHeight) {
-                newHeight = maxHeight;
-                newWidth = maxHeight * aspectRatio;
-            }
-
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const bottomMargin = 20;
-
-            if (yPosition + newHeight + bottomMargin > pageHeight) {
-                doc.addPage();
-                yPosition = 20;
-            }
-
-            doc.addImage(img.src, 'JPEG', 20, yPosition, newWidth, newHeight);
-            yPosition += newHeight + 10;
-        }
-        doc.save(fileName); // Save after all images are added
-    };
-
-    addImagesToPDF();
-} else {
-    doc.text("No photos uploaded.", 20, yPosition);
-    doc.save(fileName);
-}
-
+			// Add Photos If Available
+			const photos = document.getElementById("imageUpload").files;
+			
+			if (photos.length > 0) {
+			yPosition += 12;
+			
+			const loadImage = (file) => {
+			return new Promise((resolve) => {
+			    const reader = new FileReader();
+			    reader.onload = function (e) {
+			        const img = new Image();
+			        img.onload = function () {
+			            resolve(img);
+			        };
+			        img.src = e.target.result;
+			    };
+			    reader.readAsDataURL(file);
+			});
+			};
+			
+			const addImagesToPDF = async () => {
+			for (let i = 0; i < photos.length; i++) {
+			    const img = await loadImage(photos[i]);
+			
+			    const maxWidth = 180;
+			    const maxHeight = 150;
+			    const aspectRatio = img.width / img.height;
+			
+			    let newWidth = maxWidth;
+			    let newHeight = maxWidth / aspectRatio;
+			
+			    if (newHeight > maxHeight) {
+			        newHeight = maxHeight;
+			        newWidth = maxHeight * aspectRatio;
+			    }
+			
+			    const pageHeight = doc.internal.pageSize.getHeight();
+			    const bottomMargin = 20;
+			
+			    if (yPosition + newHeight + bottomMargin > pageHeight) {
+			        doc.addPage();
+			        yPosition = 20;
+			    }
+			
+			    doc.addImage(img.src, 'JPEG', 20, yPosition, newWidth, newHeight);
+			    yPosition += newHeight + 10;
+			}
+			doc.save(fileNamePdf); // Save after all images are added
+			};
+			
+			addImagesToPDF();
+			} else {
+			doc.setFont("helvetica", "normal");
+			doc.setFontSize(10);
+			doc.setTextColor("#5c5a58");
+			doc.text("Aucune photos", 20, yPosition);
+			doc.save(fileNamePdf);
+			}
+			
 			
 			});
 			
 			// ** Reset Field Styles **
 			function resetFieldStyles() {
-			    document.querySelectorAll("input, textarea, select").forEach(field => {
-			        field.classList.remove("required-missing");
-			    });
-			    document.querySelector(".file-input-container").classList.remove("invalid");
+			document.querySelectorAll("input, textarea, select").forEach(field => {
+			   field.classList.remove("required-missing");
+			});
+			document.querySelector(".file-input-container").classList.remove("invalid");
 			}
 		</script>
 	</body>
