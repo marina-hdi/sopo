@@ -17,8 +17,8 @@ exports.handler = async (event) => {
         let mailOptions = {
             from: process.env.EMAIL_USER,
             to: recipient,
-            subject: `CSV File: ${fileNameCsv}`,
-            text: "Here is your CSV file.",
+            subject: `NOUVEAU RELEVE: ${fileNameCsv}`,
+            text: ${fileNameCsv}`,
             attachments: [{
                 filename: fileNameCsv,
                 content: csvContent
