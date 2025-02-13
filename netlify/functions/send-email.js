@@ -2,7 +2,8 @@ const nodemailer = require("nodemailer");
 
 exports.handler = async (event) => {
     try {
-        const { fileName, csvContent, recipient } = JSON.parse(event.body);
+        // ✅ Corrected destructuring to use fileNameCsv
+        const { fileNameCsv, csvContent, recipient } = JSON.parse(event.body);
 
         let transporter = nodemailer.createTransport({
             host: "smtp.office365.com", // Microsoft SMTP server
@@ -17,10 +18,10 @@ exports.handler = async (event) => {
         let mailOptions = {
             from: process.env.EMAIL_USER,
             to: recipient,
-            subject: `NOUVEAU RELEVE: ${fileNameCsv}`,
-            text: ${fileNameCsv}`,
+            subject: `NOUVEAU RELEVE: ${fileNameCsv}`, // ✅ Fixed subject
+            text: `${fileNameCsv}`, // ✅ Fixed text format
             attachments: [{
-                filename: fileNameCsv,
+                filename: fileNameCsv, // ✅ Fixed variable usage
                 content: csvContent
             }]
         };
