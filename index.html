@@ -904,26 +904,7 @@
 			    .catch(error => {
 			        console.log("Erreur lors de l'envoi : " + error.message);
 			    });
-			}			
-			
-			// Get form values
-			let adresseValue = document.getElementById("adresse").value.toUpperCase()
-			   .replace(/,/g, "")
-			   .replace(/[\/\\]/g, "_");
-			let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/); // Capture two groups: Address & "Postal Code + Town"
-			let adresseValueLower = adresseValue.toLowerCase();
-			
-			let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
-			let postalAndTown = addressMatch ? addressMatch[2] : "";
-			
-			let today = new Date();
-			let formattedDate = today.getDate().toString().padStart(2, "0") +
-			   (today.getMonth() + 1).toString().padStart(2, "0") +
-			   today.getFullYear().toString().slice(-2);
-			
-			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
-			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
-			
+			}
 			    // Collect form data
 			    let formData = {};
 			    document.querySelectorAll("input, select, textarea").forEach(input => {
@@ -958,7 +939,26 @@
 			if (!isValid) {
 			   firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
 			   return;
-			}
+			}			
+			
+			// Get form values
+			let adresseValue = document.getElementById("adresse").value.toUpperCase()
+			   .replace(/,/g, "")
+			   .replace(/[\/\\]/g, "_");
+			let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/); // Capture two groups: Address & "Postal Code + Town"
+			let adresseValueLower = adresseValue.toLowerCase();
+			
+			let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
+			let postalAndTown = addressMatch ? addressMatch[2] : "";
+			
+			let today = new Date();
+			let formattedDate = today.getDate().toString().padStart(2, "0") +
+			   (today.getMonth() + 1).toString().padStart(2, "0") +
+			   today.getFullYear().toString().slice(-2);
+			
+			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
+			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
+			
 				
 			// Send CSV via Email
 			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
