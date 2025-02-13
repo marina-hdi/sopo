@@ -897,10 +897,10 @@
 			    })
 			    .then(response => response.json())
 			    .then(data => {
-			        alert("CSV envoyé!");
+			        console.log("CSV envoyé!");
 			    })
 			    .catch(error => {
-			        alert("Erreur lors de l'envoi : " + error.message);
+			        console.log("Erreur lors de l'envoi : " + error.message);
 			    });
 			}
 			
