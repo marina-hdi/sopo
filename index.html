@@ -959,9 +959,12 @@
 			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
 			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
 			
-			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
+			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate) {
+		  	console.log("Inside sendCSVByEmail - adresseValueLower:", adresseValueLower);
+		  	console.log("Inside sendCSVByEmail - formattedDate:", formattedDate);
 
-						// Ensure jsPDF is properly initialized
+				
+			// Ensure jsPDF is properly initialized
 			const { jsPDF } = window.jspdf;
 			const doc = new jsPDF();
 			
