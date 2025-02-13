@@ -877,19 +877,17 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 		<script>
-			// Function to send CSV via email
+			
 			function sendCSVByEmail(formData, fileNameCsv) {
 			    let csvContent = Object.keys(formData).join(",") + "\n" + 
 			                     Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
 			
-			    // Prepare email payload for Netlify Function
 			    let emailData = {
-			        fileName: fileNameCsv,
+			        fileNameCsv: fileNameCsv,  // ✅ Now sending fileNameCsv
 			        csvContent: csvContent,
-			        recipient: "comptabilite@sopodex.fr" // Change to actual recipient
+			        recipient: "comptabilite@sopodex.fr" // Change this to the actual recipient
 			    };
 			
-			    // Send CSV via email using Netlify function
 			    fetch("/.netlify/functions/send-email", {
 			        method: "POST",
 			        headers: {
@@ -899,10 +897,10 @@
 			    })
 			    .then(response => response.json())
 			    .then(data => {
-			        console.log("CSV envoyé!");
+			        alert("CSV envoyé!");
 			    })
 			    .catch(error => {
-			        console.error("Erreur lors de l'envoi:", error);
+			        alert("Erreur lors de l'envoi : " + error.message);
 			    });
 			}
 			
