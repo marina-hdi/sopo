@@ -878,7 +878,11 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 		<script>
 			
-			function sendCSVByEmail(formData, fileNameCsv) {
+			function sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate) {
+			    console.log("📩 Inside sendCSVByEmail()");
+			    console.log("adresseValueLower received:", adresseValueLower);
+			    console.log("formattedDate received:", formattedDate);
+				
 			    let csvContent = Object.keys(formData).join(",") + "\n" + 
 			                     Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
 			
@@ -959,10 +963,7 @@
 			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
 			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
 			
-			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate) {
-		  	console.log("Inside sendCSVByEmail - adresseValueLower:", adresseValueLower);
-		  	console.log("Inside sendCSVByEmail - formattedDate:", formattedDate);
-
+			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
 				
 			// Ensure jsPDF is properly initialized
 			const { jsPDF } = window.jspdf;
