@@ -2,26 +2,25 @@ const nodemailer = require("nodemailer");
 
 exports.handler = async (event) => {
     try {
-        // ✅ Corrected destructuring to use fileNameCsv
         const { fileNameCsv, csvContent, recipient } = JSON.parse(event.body);
 
         let transporter = nodemailer.createTransport({
-            host: "smtp.office365.com", // Microsoft SMTP server
-            port: 587,
-            secure: false,
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            secure: false, // Use true if using port 465
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
             }
         });
 
         let mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: `RELEVE SOPODEX <marina.nahdi@gmail.com>`, // Use a verified email
             to: recipient,
-            subject: `NOUVEAU RELEVE: ${fileNameCsv}`, // ✅ Fixed subject
-            text: `${fileNameCsv}`, // ✅ Fixed text format
+            subject: `NOUVEAU RELEVE: ${fileNameCsv}`,
+            text: "Relevé chaufferie",
             attachments: [{
-                filename: fileNameCsv, // ✅ Fixed variable usage
+                filename: fileNameCsv,
                 content: csvContent
             }]
         };
