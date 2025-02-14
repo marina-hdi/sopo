@@ -915,7 +915,7 @@
 			        if (input.type === "checkbox") {
 			            formData[input.id] = input.checked ? "OUI" : "NON";
 			        } else {
-			            formData[input.id] = input.value.trim();
+			            formData[input.id] = input.value();
 			        }
 			    });
 						
