@@ -877,15 +877,14 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 		<script>
-			
 			function sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate) {
-			    	console.log("📩 Inside sendCSVByEmail()");
-			    	console.log("adresseValueLower received:", adresseValueLower);
-			    	console.log("formattedDate received:", formattedDate);
-				console.log("🔍 Form Data Object:", formData);
-				console.log("🔍 Form Data Keys:", Object.keys(formData));
-				console.log("🔍 Form Data Values:", Object.values(formData));
-				
+			    console.log("📩 Inside sendCSVByEmail()");
+			    console.log("adresseValueLower received:", adresseValueLower);
+			    console.log("formattedDate received:", formattedDate);
+			    console.log("🔍 Form Data Object:", formData);
+			    console.log("🔍 Form Data Keys:", Object.keys(formData));
+			    console.log("🔍 Form Data Values:", Object.values(formData));
+			
 			    let csvContent = "data:text/csv;charset=utf-8,";
 			    let headers = Object.keys(formData).join(",") + "\n";
 			    let values = Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
@@ -895,9 +894,9 @@
 			    let emailData = {
 			        fileNameCsv: fileNameCsv,
 			        csvContent: csvContent,
-			        recipient: "comptabilite@sopodex.fr, services@sopodex.fr", // Recipients mails
-				adresseValueLower: adresseValueLower,
-        			formattedDate: formattedDate
+			        recipient: "comptabilite@sopodex.fr, services@sopodex.fr",
+			        adresseValueLower: adresseValueLower,
+			        formattedDate: formattedDate
 			    };
 			
 			    fetch("/.netlify/functions/send-email", {
@@ -909,97 +908,94 @@
 			    })
 			    .then(response => response.json())
 			    .then(data => {
-			        console.log("CSV envoyé!");
+			        console.log("✅ CSV envoyé!");
 			    })
 			    .catch(error => {
-			        console.log("Erreur lors de l'envoi : " + error.message);
+			        console.log("❌ Erreur lors de l'envoi du CSV:", error.message);
 			    });
 			}
-
-   			console.log("📌 Checking form inputs before collecting data...");
 			
-			    // Collect form data
+			document.getElementById("generatePDF").addEventListener("click", function (event) {
+			    event.preventDefault();
+			
+			    // Validate required fields
+			    resetFieldStyles();
+			    let isValid = true;
+			    let firstInvalidField = null;
+			
+			    function validateRequiredField(fieldId) {
+			        const fieldValue = document.getElementById(fieldId).value;
+			        if (!fieldValue.trim()) {
+			            document.getElementById(fieldId).classList.add("required-missing");
+			            isValid = false;
+			            if (!firstInvalidField) firstInvalidField = document.getElementById(fieldId);
+			        }
+			    }
+			
+			    validateRequiredField("adresse");
+			    validateRequiredField("date");
+			    validateRequiredField("syndic");
+			
+			    if (!isValid) {
+			        firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
+			        return;
+			    }
+			
+			    // ✅ Now collecting form values inside the event listener
+			    console.log("📌 Fetching input values AFTER validation...");
+			
+			    let adresseValue = document.getElementById("adresse").value.toUpperCase()
+			        .replace(/,/g, "")
+			        .replace(/[\/\\]/g, "_");
+			    let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/);
+			    let adresseValueLower = adresseValue.toLowerCase();
+			
+			    let today = new Date();
+			    let formattedDate = today.getDate().toString().padStart(2, "0") +
+			        (today.getMonth() + 1).toString().padStart(2, "0") +
+			        today.getFullYear().toString().slice(-2);
+			
+			    let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
+			    let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
+			
+			    // ✅ Collect form data dynamically inside event listener
 			    let formData = {};
-			
 			    document.querySelectorAll("input, select, textarea").forEach(input => {
-        			console.log(`🔍 ID: ${input.id}, Type: ${input.type}, Value: "${input.value}", Checked: ${input.checked}`);
-				    
+			        console.log(`🔍 Reading Input - ID: ${input.id}, Type: ${input.type}, Value: "${input.value}", Checked: ${input.checked}`);
+			
 			        if (input.type === "checkbox") {
 			            formData[input.id] = input.checked ? "OUI" : "NON";
 			        } else {
 			            formData[input.id] = input.value.trim();
 			        }
 			    });
-
-			console.log("📌 Final Form Data:", formData);
-						
-			document.getElementById("generatePDF").addEventListener("click", function (event) {
-			event.preventDefault();
-			        
-			// Validate required fields
-			resetFieldStyles();
-			let isValid = true;
-			let firstInvalidField = null;
 			
-			function validateRequiredField(fieldId) {
-			   const fieldValue = document.getElementById(fieldId).value;
-			   if (!fieldValue.trim()) {
-			       document.getElementById(fieldId).classList.add("required-missing");
-			       isValid = false;
-			       if (!firstInvalidField) firstInvalidField = document.getElementById(fieldId);
-			   }
-			}
+			    console.log("📌 Final Form Data BEFORE sending:", formData);
 			
-			validateRequiredField("adresse");
-			validateRequiredField("date");
-			validateRequiredField("syndic");
+			    // ✅ Now formData contains actual values from the user input
+			    sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
 			
-			if (!isValid) {
-			   firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
-			   return;
-			}
+			    // ✅ Ensure jsPDF is properly initialized
+			    const { jsPDF } = window.jspdf;
+			    const doc = new jsPDF();
 			
-			// Get form values
-			let adresseValue = document.getElementById("adresse").value.toUpperCase()
-			   .replace(/,/g, "")
-			   .replace(/[\/\\]/g, "_");
-			let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/); // Capture two groups: Address & "Postal Code + Town"
-			let adresseValueLower = adresseValue.toLowerCase(); 
-				
-			let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
-			let postalAndTown = addressMatch ? addressMatch[2] : "";
+			    if (!doc.autoTable) {
+			        alert("Error: autoTable is not available. Ensure the jsPDF AutoTable plugin is loaded.");
+			        return;
+			    }
 			
-			let today = new Date();
-			let formattedDate = today.getDate().toString().padStart(2, "0") +
-			   (today.getMonth() + 1).toString().padStart(2, "0") +
-			   today.getFullYear().toString().slice(-2);
+			    let dateValue = document.getElementById("date").value;
+			    let formattedUserDate = dateValue ? dateValue.split("-").reverse().join("/") : "N/A";
 			
-			let fileNamePdf = `RELEVE CHAUFFERIE - ${adresseValue} - ${formattedDate}.pdf`;
-			let fileNameCsv = `releve_chaufferie-${adresseValueLower}-${formattedDate}.csv`;
+			    let dateDesembouageValue = document.getElementById("date-desembouage").value;
+			    let formattedDesembouageDate = dateDesembouageValue ? dateDesembouageValue.split("-").reverse().join("/") : "N/A";
 			
-			sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate);
-				
-			// Ensure jsPDF is properly initialized
-			const { jsPDF } = window.jspdf;
-			const doc = new jsPDF();
+			    let dateDetartrageValue = document.getElementById("date-detartrage").value;
+			    let formattedDetartrageDate = dateDetartrageValue ? dateDetartrageValue.split("-").reverse().join("/") : "N/A";
 			
-			// Check if autoTable is available
-			if (!doc.autoTable) {
-			   alert("Error: autoTable is not available. Ensure the jsPDF AutoTable plugin is loaded.");
-			   return;
-			}
-			
-			let dateValue = document.getElementById("date").value;
-			let formattedUserDate = dateValue ? dateValue.split("-").reverse().join("/") : "N/A";
-			        
-			let dateDesembouageValue = document.getElementById("date-desembouage").value;
-			let formattedDesembouageDate = dateDesembouageValue ? dateDesembouageValue.split("-").reverse().join("/") : "N/A";
-			        
-			let dateDetartrageValue = document.getElementById("date-detartrage").value;
-			let formattedDetartrageDate = dateDetartrageValue ? dateDetartrageValue.split("-").reverse().join("/") : "N/A";
-			        
-			let dateFumigeneValue = document.getElementById("date-fumigene").value;
-			let formattedFumigeneDate = dateFumigeneValue ? dateFumigeneValue.split("-").reverse().join("/") : "N/A";
+			    let dateFumigeneValue = document.getElementById("date-fumigene").value;
+			    let formattedFumigeneDate = dateFumigeneValue ? dateFumigeneValue.split("-").reverse().join("/") : "N/A";
+			});
 			
 			// ** Generate PDF Content **
 			
