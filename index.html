@@ -949,6 +949,9 @@
 			        .replace(/[\/\\]/g, "_");
 			    let addressMatch = adresseValue.match(/(.*)\s(\d{5}\s.+)$/);
 			    let adresseValueLower = adresseValue.toLowerCase();
+				
+			let adresseWithoutPostal = addressMatch ? addressMatch[1] : adresseValue;
+			let postalAndTown = addressMatch ? addressMatch[2] : "";
 			
 			    let today = new Date();
 			    let formattedDate = today.getDate().toString().padStart(2, "0") +
@@ -1009,7 +1012,7 @@
 			doc.setFontSize(28);
 			doc.setTextColor("#383634");
 			doc.text("RELEVÉ CHAUFFERIE", 20, yPosition);
-			
+
 			yPosition +=18
 			doc.setFontSize(18);
 			doc.setTextColor("#053c69");
