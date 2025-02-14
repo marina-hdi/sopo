@@ -915,15 +915,23 @@
 			        console.log("Erreur lors de l'envoi : " + error.message);
 			    });
 			}
+
+   			console.log("📌 Checking form inputs before collecting data...");
+			
 			    // Collect form data
 			    let formData = {};
+			
 			    document.querySelectorAll("input, select, textarea").forEach(input => {
+        			console.log(`🔍 ID: ${input.id}, Type: ${input.type}, Value: "${input.value}", Checked: ${input.checked}`);
+				    
 			        if (input.type === "checkbox") {
 			            formData[input.id] = input.checked ? "OUI" : "NON";
 			        } else {
 			            formData[input.id] = input.value.trim();
 			        }
 			    });
+
+			console.log("📌 Final Form Data:", formData);
 						
 			document.getElementById("generatePDF").addEventListener("click", function (event) {
 			event.preventDefault();
@@ -949,7 +957,7 @@
 			if (!isValid) {
 			   firstInvalidField.scrollIntoView({ behavior: "smooth", block: "start" });
 			   return;
-			}			
+			}
 			
 			// Get form values
 			let adresseValue = document.getElementById("adresse").value.toUpperCase()
