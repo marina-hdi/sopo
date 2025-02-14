@@ -879,12 +879,18 @@
 		<script>
 			
 			function sendCSVByEmail(formData, fileNameCsv, adresseValueLower, formattedDate) {
-			    console.log("📩 Inside sendCSVByEmail()");
-			    console.log("adresseValueLower received:", adresseValueLower);
-			    console.log("formattedDate received:", formattedDate);
+			    	console.log("📩 Inside sendCSVByEmail()");
+			    	console.log("adresseValueLower received:", adresseValueLower);
+			    	console.log("formattedDate received:", formattedDate);
+				console.log("🔍 Form Data Object:", formData);
+				console.log("🔍 Form Data Keys:", Object.keys(formData));
+				console.log("🔍 Form Data Values:", Object.values(formData));
 				
-			    let csvContent = Object.keys(formData).join(",") + "\n" + 
-			                     Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
+			    let csvContent = "data:text/csv;charset=utf-8,";
+			    let headers = Object.keys(formData).join(",") + "\n";
+			    let values = Object.values(formData).map(value => `"${value}"`).join(",") + "\n";
+			
+			    csvContent += headers + values;
 			
 			    let emailData = {
 			        fileNameCsv: fileNameCsv,
