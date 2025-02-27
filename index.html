@@ -838,40 +838,49 @@
 			imageUpload.addEventListener("change", function (event) {
 			    const files = Array.from(event.target.files);
 			
-			    // Append new files to the existing list
+			    if (!files.length) return; // If no files are selected, do nothing
+			
 			    files.forEach(file => {
-			        if (!selectedFiles.some(existingFile => existingFile.name === file.name)) {
-			            selectedFiles.push(file);
-			
-			            const reader = new FileReader();
-			
-			            reader.onload = function (e) {
-			                const imageContainer = document.createElement("div");
-			                imageContainer.classList.add("image-container");
-			
-			                const img = document.createElement("img");
-			                img.src = e.target.result;
-			
-			                const removeBtn = document.createElement("button");
-			                removeBtn.classList.add("remove-btn");
-			                removeBtn.innerText = "X";
-			
-			                // Remove image when clicked
-			                removeBtn.addEventListener("click", function () {
-			                    imageContainer.remove();
-			                    selectedFiles = selectedFiles.filter(f => f.name !== file.name);
-			                });
-			
-			                imageContainer.appendChild(img);
-			                imageContainer.appendChild(removeBtn);
-			                imagePreview.appendChild(imageContainer);
-			            };
-			
-			            reader.readAsDataURL(file);
+			        // Ensure the file is an image
+			        if (!file.type.startsWith("image/")) {
+			            alert("Only image files are allowed.");
+			            return;
 			        }
+			
+			        // Prevent duplicate images (by name)
+			        if (selectedFiles.some(existingFile => existingFile.name === file.name)) {
+			            return;
+			        }
+			
+			        selectedFiles.push(file);
+			
+			        const reader = new FileReader();
+			        reader.onload = function (e) {
+			            const imageContainer = document.createElement("div");
+			            imageContainer.classList.add("image-container");
+			
+			            const img = document.createElement("img");
+			            img.src = e.target.result;
+			
+			            const removeBtn = document.createElement("button");
+			            removeBtn.classList.add("remove-btn");
+			            removeBtn.innerText = "X";
+			
+			            // Remove image when clicked
+			            removeBtn.addEventListener("click", function () {
+			                imageContainer.remove();
+			                selectedFiles = selectedFiles.filter(f => f.name !== file.name);
+			            });
+			
+			            imageContainer.appendChild(img);
+			            imageContainer.appendChild(removeBtn);
+			            imagePreview.appendChild(imageContainer);
+			        };
+			
+			        reader.readAsDataURL(file);
 			    });
 			
-			    // Reset the file input to allow adding the same file again
+			    // Reset the file input to allow selecting the same file again
 			    imageUpload.value = "";
 			});
 		</script>
