@@ -869,7 +869,7 @@
 			            // Remove image when clicked
 			            removeBtn.addEventListener("click", function () {
 			                imageContainer.remove();
-			                selectedFiles = selectedFiles.filter(f => f.name !== file.name);
+			                selectedFiles = selectedFiles.filter(f => f !== file);
 			            });
 			
 			            imageContainer.appendChild(img);
@@ -1608,65 +1608,61 @@
 			yPosition += 6;
 			
 			// Add Photos If Available
-			const photos = document.getElementById("imageUpload").files;
+			if (selectedFiles.length > 0) {
+			    yPosition += 12;
 			
-			if (photos.length > 0) {
-			yPosition += 12;
-			
-			const loadImage = (file) => {
-			return new Promise((resolve) => {
-			    const reader = new FileReader();
-			    reader.onload = function (e) {
-			        const img = new Image();
-			        img.onload = function () {
-			            resolve(img);
-			        };
-			        img.src = e.target.result;
+			    const loadImage = (file) => {
+			        return new Promise((resolve) => {
+			            const reader = new FileReader();
+			            reader.onload = function (e) {
+			                const img = new Image();
+			                img.onload = function () {
+			                    resolve(img);
+			                };
+			                img.src = e.target.result;
+			            };
+			            reader.readAsDataURL(file);
+			        });
 			    };
-			    reader.readAsDataURL(file);
-			});
-			};
 			
-			const addImagesToPDF = async () => {
-			for (let i = 0; i < photos.length; i++) {
-			    const img = await loadImage(photos[i]);
+			    const addImagesToPDF = async () => {
+			        for (let i = 0; i < selectedFiles.length; i++) { // Use `selectedFiles` instead of input.files
+			            const img = await loadImage(selectedFiles[i]);
 			
-			    const maxWidth = 180;
-			    const maxHeight = 150;
-			    const aspectRatio = img.width / img.height;
+			            const maxWidth = 180;
+			            const maxHeight = 150;
+			            const aspectRatio = img.width / img.height;
 			
-			    let newWidth = maxWidth;
-			    let newHeight = maxWidth / aspectRatio;
+			            let newWidth = maxWidth;
+			            let newHeight = maxWidth / aspectRatio;
 			
-			    if (newHeight > maxHeight) {
-			        newHeight = maxHeight;
-			        newWidth = maxHeight * aspectRatio;
-			    }
+			            if (newHeight > maxHeight) {
+			                newHeight = maxHeight;
+			                newWidth = maxHeight * aspectRatio;
+			            }
 			
-			    const pageHeight = doc.internal.pageSize.getHeight();
-			    const bottomMargin = 20;
+			            const pageHeight = doc.internal.pageSize.getHeight();
+			            const bottomMargin = 20;
 			
-			    if (yPosition + newHeight + bottomMargin > pageHeight) {
-			        doc.addPage();
-			        yPosition = 20;
-			    }
+			            if (yPosition + newHeight + bottomMargin > pageHeight) {
+			                doc.addPage();
+			                yPosition = 20;
+			            }
 			
-			    doc.addImage(img.src, 'JPEG', 20, yPosition, newWidth, newHeight);
-			    yPosition += newHeight + 10;
-			}
-			doc.save(fileNamePdf); // Save after all images are added
-			};
+			            doc.addImage(img, 'JPEG', 20, yPosition, newWidth, newHeight);
+			            yPosition += newHeight + 10;
+			        }
+			        doc.save(fileNamePdf); // Save after all images are added
+			    };
 			
-			addImagesToPDF();
+			    addImagesToPDF();
 			} else {
-			doc.setFont("helvetica", "normal");
-			doc.setFontSize(10);
-			doc.setTextColor("#5c5a58");
-			doc.text("Aucune photos", 20, yPosition);
-			doc.save(fileNamePdf);
+			    doc.setFont("helvetica", "normal");
+			    doc.setFontSize(10);
+			    doc.setTextColor("#5c5a58");
+			    doc.text("Aucune photos", 20, yPosition);
+			    doc.save(fileNamePdf);
 			}
-				
-			});
 			
 			// ** Reset Field Styles **
 			function resetFieldStyles() {
