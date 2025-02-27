@@ -1662,14 +1662,15 @@
 			    doc.setTextColor("#5c5a58");
 			    doc.text("Aucune photos", 20, yPosition);
 			    doc.save(fileNamePdf);
-			};
-			
-			// ** Reset Field Styles **
-			function resetFieldStyles() {
-			document.querySelectorAll("input, textarea, select").forEach(field => {
-			   field.classList.remove("required-missing");
+			    }
 			});
-			document.querySelector(".file-input-container").classList.remove("invalid");
+			
+			// ** Reset Field Styles Function **
+			function resetFieldStyles() {
+			    document.querySelectorAll("input, textarea, select").forEach(field => {
+			        field.classList.remove("required-missing");
+			    });
+			    document.querySelector(".file-input-container").classList.remove("invalid");
 			}
 		</script>
 	</body>
