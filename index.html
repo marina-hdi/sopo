@@ -832,46 +832,47 @@
 			const imageUpload = document.getElementById("imageUpload");
 			const imagePreview = document.getElementById("imagePreview");
 			
-			// Function to handle image uploads
-			imageUpload.addEventListener("change", function(event) {
-			    const files = event.target.files;
+			// Store selected files in an array
+			let selectedFiles = [];
 			
-			    // Loop through each file and create an image preview
-			    for (let i = 0; i < files.length; i++) {
-			        const file = files[i];
+			imageUpload.addEventListener("change", function (event) {
+			    const files = Array.from(event.target.files);
 			
-			        // Create a FileReader to read the image file
-			        const reader = new FileReader();
+			    // Append new files to the existing list
+			    files.forEach(file => {
+			        if (!selectedFiles.some(existingFile => existingFile.name === file.name)) {
+			            selectedFiles.push(file);
 			
-			        reader.onload = function(e) {
-			            const imageContainer = document.createElement("div");
-			            imageContainer.classList.add("image-container");
+			            const reader = new FileReader();
 			
-			            // Create image element and set the source to the file
-			            const img = document.createElement("img");
-			            img.src = e.target.result;
+			            reader.onload = function (e) {
+			                const imageContainer = document.createElement("div");
+			                imageContainer.classList.add("image-container");
 			
-			            // Create remove button
-			            const removeBtn = document.createElement("button");
-			            removeBtn.classList.add("remove-btn");
-			            removeBtn.innerText = "X";
+			                const img = document.createElement("img");
+			                img.src = e.target.result;
 			
-			            // Event listener to remove image on click
-			            removeBtn.addEventListener("click", function() {
-			                imageContainer.remove();
-			            });
+			                const removeBtn = document.createElement("button");
+			                removeBtn.classList.add("remove-btn");
+			                removeBtn.innerText = "X";
 			
-			            // Append the image and remove button to the container
-			            imageContainer.appendChild(img);
-			            imageContainer.appendChild(removeBtn);
+			                // Remove image when clicked
+			                removeBtn.addEventListener("click", function () {
+			                    imageContainer.remove();
+			                    selectedFiles = selectedFiles.filter(f => f.name !== file.name);
+			                });
 			
-			            // Add the container to the image preview area
-			            imagePreview.appendChild(imageContainer);
-			        };
+			                imageContainer.appendChild(img);
+			                imageContainer.appendChild(removeBtn);
+			                imagePreview.appendChild(imageContainer);
+			            };
 			
-			        // Read the file as a data URL
-			        reader.readAsDataURL(file);
-			    }
+			            reader.readAsDataURL(file);
+			        }
+			    });
+			
+			    // Reset the file input to allow adding the same file again
+			    imageUpload.value = "";
 			});
 		</script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
